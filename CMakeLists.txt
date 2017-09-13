@@ -46,18 +46,28 @@ set(version_patch 0)
 set(version "${version_major}.${version_minor}.${version_patch}")
 set(package-contact "christoph@px4.io")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fpic")
 set(CMAKE_BUILD_TYPE Release)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS
     ${PROJECT_SOURCE_DIR}/include
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
+find_package(catkin REQUIRED COMPONENTS 
+      roscpp
+      sensor_msgs
+      std_msgs
+)
 
 find_package( OpenCV REQUIRED )
 OPTION(OPENCV "ON for OpenCV" ON) # -DOPENCV=OFF
 
 add_subdirectory( external/klt_feature_tracker klt_feature_tracker )
 set( klt_feature_tracker_LIBS "klt_feature_tracker" )
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+)
 
 if(OpenCV_FOUND AND OPENCV)
     message(STATUS "Building ${PROJECT_NAME} with OpenCV")
@@ -68,13 +78,14 @@ if(OpenCV_FOUND AND OPENCV)
       ${OpenCV_INCLUDE_DIRS}
     )
 
-    include_directories(OpticalFlow_INCLUDE_DIRS)
+    include_directories(OpticalFlow_INCLUDE_DIRS ${catkin_INCLUDE_DIRS})
 
     add_library( OpticalFlow SHARED
       src/optical_flow.cpp
       src/px4flow.cpp
      	src/flow_px4.cpp
     	src/flow_opencv.cpp
+	src/FlowReader.cpp
     )
 
     target_link_libraries( OpticalFlow
@@ -90,24 +101,25 @@ else()
 
     include_directories(OpticalFlow_INCLUDE_DIRS)
 
-    add_library( OpticalFlow SHARED
+    add_library( ${PROJECT_NAME} SHARED
       src/optical_flow.cpp
       src/px4flow.cpp
      	src/flow_px4.cpp
+	src/FlowReader.cpp
     )
 
 endif()
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
-target_include_directories(OpticalFlow PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 # Generate the Config file from the .in file, doing @VAR@ substitution only
 configure_file(OpticalFlowConfig.cmake.in FindOpticalFlow.cmake @ONLY)
 
 # INSTALL STEPS
-INSTALL(
-  TARGETS OpticalFlow
-  RUNTIME DESTINATION lib
-  LIBRARY DESTINATION lib)
+
 
 INSTALL(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/klt_feature_tracker/include/
@@ -120,3 +132,25 @@ INSTALL(
 INSTALL(
   FILES ${CMAKE_BINARY_DIR}/FindOpticalFlow.cmake
   DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+
+# Executable to read and publish flow
+add_executable(${PROJECT_NAME}_node
+  src/flow_reader.cpp
+)
+
+set_target_properties(${PROJECT_NAME}_node
+    PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
+)
+
+target_link_libraries(${PROJECT_NAME}_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+INSTALL(
+  TARGETS ${PROJECT_NAME} 
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  DESTINATION include)

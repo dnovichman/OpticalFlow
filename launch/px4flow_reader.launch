@@ -1,0 +1,33 @@
+
+
+<launch>
+   <node pkg="OpticalFlow"
+    type="OpticalFlow"
+    name="OpticalFlow"
+    required="true"
+    clear_params="true"
+    output="screen">
+  <remap from="~images" to="/camera/rgb/image_raw"/>
+  <remap from="~imu" to="/imu"/>
+  <remap from="~ssd_velocity" to="/ssd_tracker_node/odom"/>
+  <remap from="~icp_velocity" to="/velocity_icp"/>
+  <param name="R/Pos_xy" value="1000" />
+  <param name="R/Pos_z" value="1000" />
+  <param name="R/Beta_xy" value="0" />
+  <param name="R/Beta_z" value="0" />
+  <param name="Q/Pos_xy" value="1" />
+  <param name="Q/Pos_z" value="140" />
+  <param name="Q/Beta_xy" value="0" />
+  <param name="Q/Beta_z" value="0" />
+  <param name="R/Beta_xy" value="7" />
+  <param name="R/Beta_z" value="140" />
+  <param name="Restart_Time" value="1000" />
+  <param name="Min_Pos_Delay" value="40" />
+  <param name="Compensate_Delay" value="false" />
+  <param name="Gait/Pos" value="1000"/>
+  <param name="Gait/Vel" value="5000" />
+  <param name="Meas_Time_out" value="1000" />
+  </node>
+</launch>
+
+
