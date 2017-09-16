@@ -54,8 +54,8 @@ bool FlowReader::loadParameters(const ros::NodeHandle& n)
 	n.getParam("Number_Of_Features", num_feat);
 
 	// Create a yaml file reader for camera parameters
-	n.getParam("camera_matrix/data[0]",focal_length_x);
-	n.getParam("camera_matrix/data[4]",focal_length_y);
+	/*n.getParam("camera_matrix/data[0]",focal_length_x);
+	n.getParam("camera_matrix/data[4]",focal_length_y);*/
 
   	return true;
 }
