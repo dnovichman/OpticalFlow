@@ -7,7 +7,8 @@
     required="true"
     clear_params="true"
     output="screen">
-  <remap from="~images" to="/camera/rgb/image_raw"/>
+  <!--<remap from="~images" to="/camera/rgb/image_raw"/> -->
+  <remap from="~images" to="/camera/image_raw"/>
   <remap from="~imu" to="/imu"/>
   <remap from="~ssd_velocity" to="/ssd_tracker_node/odom"/>
   <remap from="~icp_velocity" to="/velocity_icp"/>

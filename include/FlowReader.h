@@ -47,5 +47,6 @@ private:
 	bool frame_time_set;
 
 	float gyro_x, gyro_y;
+	geometry_msgs::Quaternion att_q;
 };
 #endif

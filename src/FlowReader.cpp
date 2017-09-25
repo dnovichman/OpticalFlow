@@ -21,6 +21,10 @@ ouput_rate(-1)
 
 	focal_length_x = 671.79043f;
 	focal_length_y = 672.55843f;
+	att_q.x = 0.0f;
+	att_q.y = 0.0f;
+	att_q.z = 0.0f;
+	att_q.w = 1.0f;
 }
 
 FlowReader::~FlowReader() {}
@@ -118,11 +122,12 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 	cur_odom.pose.pose.position.x = curr_odom_x;
 	cur_odom.pose.pose.position.y = curr_odom_y;
 	cur_odom.pose.pose.position.z = altitude; // NED or NWU
+
+	cur_odom.pose.pose.orientation = att_q;
 	odom_pub.publish(cur_odom);
 
 	float vx = x/dt_us*1e3f;
 	float vy = y/dt_us*1e3f;
-	ROS_INFO("Vxy %f %f", vx, vy);
 }
 
 void FlowReader::process_imu(const ros::MessageEvent<sensor_msgs::Imu const>& event)
@@ -130,6 +135,8 @@ void FlowReader::process_imu(const ros::MessageEvent<sensor_msgs::Imu const>& ev
 	sensor_msgs::Imu::ConstPtr msg = event.getMessage();
 	gyro_x = msg->angular_velocity.x;
 	gyro_y = msg->angular_velocity.y;
+
+	att_q = msg->orientation;
 
 }
 
