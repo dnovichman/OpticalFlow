@@ -12,7 +12,7 @@ ouput_rate(-1)
 	curr_odom_x = 0.0f;
 	curr_odom_y = 0.0f;
 
-	frame = "world";
+	frame = "camera";
 	altitude = 1.0f;
 
 	frame_time_set = false;
@@ -57,14 +57,17 @@ bool FlowReader::loadParameters(const ros::NodeHandle& n)
 	n.getParam("Image_Height", image_height);
 	n.getParam("Number_Of_Features", num_feat);
 
-	// Create a yaml file reader for camera parameters
+	n.getParam("Focal_Length_x",focal_length_x);
+	n.getParam("Focal_Length_y",focal_length_y);
+
+	// Create a yaml file reader for camera calibration parameters
 	/*n.getParam("camera_matrix/data[0]",focal_length_x);
 	n.getParam("camera_matrix/data[4]",focal_length_y);*/
 
   	return true;
 }
 
-void FlowReader::process_images(const ros::MessageEvent<sensor_msgs::Image const>& event)
+void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const>& event)
 {
 	sensor_msgs::Image::ConstPtr msg = event.getMessage();
 
@@ -130,7 +133,7 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 	float vy = y/dt_us*1e3f;
 }
 
-void FlowReader::process_imu(const ros::MessageEvent<sensor_msgs::Imu const>& event)
+void FlowReader::imuCallback(const ros::MessageEvent<sensor_msgs::Imu const>& event)
 {
 	sensor_msgs::Imu::ConstPtr msg = event.getMessage();
 	gyro_x = msg->angular_velocity.x;
@@ -140,10 +143,9 @@ void FlowReader::process_imu(const ros::MessageEvent<sensor_msgs::Imu const>& ev
 
 }
 
-void FlowReader::process_range(const ros::MessageEvent<sensor_msgs::Range const>& event)
+void FlowReader::rangeCallback(const ros::MessageEvent<sensor_msgs::Range const>& event)
 {
 	sensor_msgs::Range::ConstPtr msg = event.getMessage();
-	//sensor_msgs::Range range;
 	altitude = msg->range;
 
 	// We can use float d = agl() * cosf(euler.phi()) * cosf(euler.theta()); to correct if we choose to use sonar or baro
@@ -154,9 +156,9 @@ void FlowReader::process_range(const ros::MessageEvent<sensor_msgs::Range const>
 bool FlowReader::registerCallbacks(const ros::NodeHandle& n)
 {
 	ros::NodeHandle optical_node(n);
-	images_sub = optical_node.subscribe("images", 1000, &FlowReader::process_images, this);
-	imu_sub = optical_node.subscribe("imu", 3, &FlowReader::process_imu, this);
-	range_sub = optical_node.subscribe("range", 3, &FlowReader::process_range, this);
+	images_sub = optical_node.subscribe("images", 1000, &FlowReader::imagesCallback, this);
+	imu_sub = optical_node.subscribe("imu", 3, &FlowReader::imuCallback, this);
+	range_sub = optical_node.subscribe("range", 3, &FlowReader::rangeCallback, this);
 
 	flow_pub = optical_node.advertise<geometry_msgs::TwistStamped>("flow", 1000, false);
 	odom_pub = optical_node.advertise<nav_msgs::Odometry>("odom", 1000, false);

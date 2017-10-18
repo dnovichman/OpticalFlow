@@ -19,10 +19,10 @@ public:
 private:
 	bool loadParameters(const ros::NodeHandle& n);
 	bool registerCallbacks(const ros::NodeHandle& n);
-	void process_images(const ros::MessageEvent<sensor_msgs::Image const>& event);
-	void process_imu(const ros::MessageEvent<sensor_msgs::Imu const>& event);
+	void imagesCallback(const ros::MessageEvent<sensor_msgs::Image const>& event);
+	void imuCallback(const ros::MessageEvent<sensor_msgs::Imu const>& event);
 	void update_odom(std_msgs::Header h, float x, float y);
-	void process_range(const ros::MessageEvent<sensor_msgs::Range const>& event);
+	void rangeCallback(const ros::MessageEvent<sensor_msgs::Range const>& event);
 	OpticalFlowOpenCV *optical_flow;
 
 	//Publishers
