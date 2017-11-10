@@ -13,7 +13,7 @@ ouput_rate(-1)
 	curr_odom_y = 0.0f;
 
 	frame = "camera";
-	altitude = 1.0f;
+	altitude = 0.0f;
 
 	frame_time_set = false;
 	gyro_x = 0.0f;
@@ -25,6 +25,9 @@ ouput_rate(-1)
 	att_q.y = 0.0f;
 	att_q.z = 0.0f;
 	att_q.w = 1.0f;
+
+	R_imu_in_body.setIdentity();
+	R_cam_in_imu.setIdentity();
 }
 
 FlowReader::~FlowReader() {}
@@ -51,18 +54,30 @@ bool FlowReader::initialize(const ros::NodeHandle& n)
 
 bool FlowReader::loadParameters(const ros::NodeHandle& n)
 {
-	// In general, these should be part of camera param file
+	std::vector<float> camera_calib_matrix = {0.0f}, imu_in_body = {0.0f}, cam_in_imu = {0.0f};
+
 	n.getParam("Output_Rate",ouput_rate);
 	n.getParam("Image_Width", image_width);
 	n.getParam("Image_Height", image_height);
 	n.getParam("Number_Of_Features", num_feat);
 
-	n.getParam("Focal_Length_x",focal_length_x);
-	n.getParam("Focal_Length_y",focal_length_y);
+	n.getParam("camera_matrix/data",camera_calib_matrix);	
+	n.getParam("cam_offset",cam_offset);
+	n.getParam("imu_in_body",imu_in_body);
+	n.getParam("cam_type",cam_type);
 
-	// Create a yaml file reader for camera calibration parameters
-	/*n.getParam("camera_matrix/data[0]",focal_length_x);
-	n.getParam("camera_matrix/data[4]",focal_length_y);*/
+	n.getParam("cam_in_imu",cam_in_imu);
+	R_imu_in_body.setValue(imu_in_body[0], imu_in_body[1], imu_in_body[2], 
+							imu_in_body[3], imu_in_body[4], imu_in_body[5], 
+							imu_in_body[6], imu_in_body[7], imu_in_body[8]);
+
+	R_cam_in_imu.setValue(cam_in_imu[0], cam_in_imu[1], cam_in_imu[2], 
+							cam_in_imu[3], cam_in_imu[4], cam_in_imu[5], 
+							cam_in_imu[6], cam_in_imu[7], cam_in_imu[8]);
+
+
+	focal_length_x = camera_calib_matrix[0];
+	focal_length_y = camera_calib_matrix[4];
 
   	return true;
 }
@@ -75,7 +90,13 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 	{
 		first_frame_time = msg->header.stamp.toSec();
 		frame_time_set = true;
+		prev_img_time = msg->header.stamp.toSec();
 	}
+
+	// TODO provide support for other encodings
+	std::string img_encoding = "mono8";
+	if (img_encoding.compare(msg->encoding))
+		return;
 
 	double frame_time = msg->header.stamp.toSec();
 	image_height = msg->height;
@@ -88,20 +109,13 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 
 	std::copy(std::begin(msg->data), std::end(msg->data), std::begin(image));
 
-	#if 0
-	for (int i=0; i<307200; i++)
-	{
-		//ROS_INFO("d %u",image[i]); //-msg->data[i]
-	i++;
-	}
-	#endif
 	quality = optical_flow->calcFlow((uchar*)image, frame_time_us, dt_us, flow_x_ang, flow_y_ang);
-	// Check coordinate system
-	flow_x_ang = (flow_x_ang - gyro_x)*altitude;
-	flow_y_ang = (flow_y_ang - gyro_y)*altitude;
-	#if 0
-	ROS_INFO("Image quality is %d %d", quality, dt_us);
-	#endif
+	
+	// Please check gyro directions
+	float image_dt = frame_time - prev_img_time;
+	flow_x_ang = (flow_x_ang - gyro_x*image_dt)*altitude;
+	flow_y_ang = (flow_y_ang - gyro_x*image_dt)*altitude;
+
 	if (quality > 0)
 	{
 		geometry_msgs::TwistStamped flow_data;
@@ -112,6 +126,7 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 		
 		update_odom(msg->header, flow_x_ang, flow_y_ang);
 	}
+	prev_img_time = msg->header.stamp.toSec();
 }
 
 void FlowReader::update_odom(std_msgs::Header h, float x, float y)
@@ -122,9 +137,13 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 	curr_odom_x += x;
 	curr_odom_y += y;
 
-	cur_odom.pose.pose.position.x = curr_odom_x;
-	cur_odom.pose.pose.position.y = curr_odom_y;
-	cur_odom.pose.pose.position.z = altitude; // NED or NWU
+	// Perform rotations
+	tf::Vector3 pose(curr_odom_x, curr_odom_y, altitude);
+	tf::Vector3 pose_rot = R_imu_in_body*R_cam_in_imu*pose;
+
+	cur_odom.pose.pose.position.x = pose_rot.getX();
+	cur_odom.pose.pose.position.y = pose_rot.getY();
+	cur_odom.pose.pose.position.z = pose_rot.getZ();
 
 	cur_odom.pose.pose.orientation = att_q;
 	odom_pub.publish(cur_odom);
@@ -136,11 +155,12 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 void FlowReader::imuCallback(const ros::MessageEvent<sensor_msgs::Imu const>& event)
 {
 	sensor_msgs::Imu::ConstPtr msg = event.getMessage();
-	gyro_x = msg->angular_velocity.x;
-	gyro_y = msg->angular_velocity.y;
+	tf::Vector3 gyros(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
+	tf::Vector3 gyros_in_cam = R_cam_in_imu.transpose()*gyros;
+	gyro_x = gyros_in_cam.getX();
+	gyro_y = gyros_in_cam.getY();
 
 	att_q = msg->orientation;
-
 }
 
 void FlowReader::rangeCallback(const ros::MessageEvent<sensor_msgs::Range const>& event)
@@ -152,7 +172,6 @@ void FlowReader::rangeCallback(const ros::MessageEvent<sensor_msgs::Range const>
 	
 }
 
-
 bool FlowReader::registerCallbacks(const ros::NodeHandle& n)
 {
 	ros::NodeHandle optical_node(n);
@@ -160,7 +179,7 @@ bool FlowReader::registerCallbacks(const ros::NodeHandle& n)
 	imu_sub = optical_node.subscribe("imu", 3, &FlowReader::imuCallback, this);
 	range_sub = optical_node.subscribe("range", 3, &FlowReader::rangeCallback, this);
 
-	flow_pub = optical_node.advertise<geometry_msgs::TwistStamped>("flow", 1000, false);
+	flow_pub = optical_node.advertise<geometry_msgs::TwistStamped>("twists", 1000, false);
 	odom_pub = optical_node.advertise<nav_msgs::Odometry>("odom", 1000, false);
-  return true;
+  	return true;
 }

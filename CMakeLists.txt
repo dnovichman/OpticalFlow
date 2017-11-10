@@ -56,6 +56,7 @@ find_package(catkin REQUIRED COMPONENTS
       roscpp
       sensor_msgs
       std_msgs
+      tf
 )
 
 find_package( OpenCV REQUIRED )
@@ -67,6 +68,8 @@ set( klt_feature_tracker_LIBS "klt_feature_tracker" )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS tf
+  DEPENDS tf
 )
 
 if(OpenCV_FOUND AND OPENCV)

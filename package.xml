@@ -12,8 +12,10 @@
 
   <build_depend>sensor_msgs</build_depend>
   <build_depend>libopencv-dev</build_depend>
+  <build_depend>tf</build_depend>
   <run_depend>libopencv-dev</run_depend>
   <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
 
   <build_depend>klt_feature_tracker</build_depend>
   <run_depend>klt_feature_tracker</run_depend>

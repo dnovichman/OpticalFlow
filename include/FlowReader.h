@@ -9,6 +9,7 @@
 #include <sensor_msgs/Range.h>
 #include <nav_msgs/Odometry.h>
 #include "flow_opencv.hpp"
+#include <tf/transform_datatypes.h>
 
 class FlowReader
 {
@@ -31,7 +32,7 @@ private:
 
 	std::string node_name;
 
-	uchar image[921600]; //[307200];
+	uchar image[921600];
 	
 	double first_frame_time;
 	int dt_us;
@@ -40,13 +41,18 @@ private:
 	float conf_multi;
 
 	double focal_length_x, focal_length_y;
+	float prev_img_time;
 
-	float curr_odom_x, curr_odom_y; //These should be eigen/arma vecs
+	float curr_odom_x, curr_odom_y; 
 	std::string frame;
 	float altitude;
 	bool frame_time_set;
 
 	float gyro_x, gyro_y;
 	geometry_msgs::Quaternion att_q;
+
+	std::vector<float> cam_offset;
+	tf::Matrix3x3 R_imu_in_body, R_cam_in_imu;
+	std::string cam_type;
 };
 #endif

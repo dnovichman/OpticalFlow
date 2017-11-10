@@ -1,15 +1,20 @@
 
 
 <launch>
+   <arg name="camera_calib_pkg" default="$(find camera_calibration_files)"/>
    <node pkg="OpticalFlow"
     type="OpticalFlow"
     name="OpticalFlow"
     required="true"
     clear_params="true"
     output="screen">
+  <rosparam file="$(arg camera_calib_pkg)/mono/cam1_calibration.yaml"/>
+  <rosparam file="$(arg camera_calib_pkg)/mono/webcam_config.yaml"/>
   <!--<remap from="~images" to="/camera/rgb/image_raw"/> -->
-  <remap from="~images" to="/camera/image_raw"/>
+  <!--<remap from="~images" to="/camera/image_raw"/> -->
+  <remap from="~images" to="/image_mono"/>
   <remap from="~imu" to="/imu"/>
+  <remap from="~range" to="/range"/>
   </node>
 </launch>
 
