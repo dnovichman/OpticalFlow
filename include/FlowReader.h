@@ -41,7 +41,7 @@ private:
 	float conf_multi;
 
 	double focal_length_x, focal_length_y;
-	float prev_img_time;
+	double prev_img_time;
 
 	float curr_odom_x, curr_odom_y; 
 	std::string frame;

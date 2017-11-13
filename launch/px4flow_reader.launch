@@ -13,7 +13,7 @@
   <!--<remap from="~images" to="/camera/rgb/image_raw"/> -->
   <!--<remap from="~images" to="/camera/image_raw"/> -->
   <remap from="~images" to="/image_mono"/>
-  <remap from="~imu" to="/imu"/>
+  <remap from="~imu" to="/mavros/imu/data_raw"/>
   <remap from="~range" to="/range"/>
   </node>
 </launch>

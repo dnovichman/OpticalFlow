@@ -28,6 +28,8 @@ ouput_rate(-1)
 
 	R_imu_in_body.setIdentity();
 	R_cam_in_imu.setIdentity();
+
+	prev_img_time = ros::Time::now().toSec();
 }
 
 FlowReader::~FlowReader() {}
@@ -110,9 +112,9 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 	std::copy(std::begin(msg->data), std::end(msg->data), std::begin(image));
 
 	quality = optical_flow->calcFlow((uchar*)image, frame_time_us, dt_us, flow_x_ang, flow_y_ang);
-	
+
 	// Please check gyro directions
-	float image_dt = frame_time - prev_img_time;
+	double image_dt = (msg->header.stamp.toSec() - prev_img_time);
 	flow_x_ang = (flow_x_ang - gyro_x*image_dt)*altitude;
 	flow_y_ang = (flow_y_ang - gyro_x*image_dt)*altitude;
 
@@ -159,6 +161,8 @@ void FlowReader::imuCallback(const ros::MessageEvent<sensor_msgs::Imu const>& ev
 	tf::Vector3 gyros_in_cam = R_cam_in_imu.transpose()*gyros;
 	gyro_x = gyros_in_cam.getX();
 	gyro_y = gyros_in_cam.getY();
+
+	//ROS_INFO("gyro xy %f %f", gyro_x, gyro_y);
 
 	att_q = msg->orientation;
 }
