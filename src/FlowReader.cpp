@@ -30,6 +30,11 @@ ouput_rate(-1)
 	R_cam_in_imu.setIdentity();
 
 	prev_img_time = ros::Time::now().toSec();
+	imu_timeout = 2.0;
+	last_imu_time = ros::Time::now().toSec();
+
+	range_timeout = 2.0;
+	last_range_time = ros::Time::now().toSec();
 }
 
 FlowReader::~FlowReader() {}
@@ -67,6 +72,7 @@ bool FlowReader::loadParameters(const ros::NodeHandle& n)
 	n.getParam("cam_offset",cam_offset);
 	n.getParam("imu_in_body",imu_in_body);
 	n.getParam("cam_type",cam_type);
+	n.getParam("Imu_Timeout",imu_timeout);
 
 	n.getParam("cam_in_imu",cam_in_imu);
 	R_imu_in_body.setValue(imu_in_body[0], imu_in_body[1], imu_in_body[2], 
@@ -94,6 +100,18 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 		frame_time_set = true;
 		prev_img_time = msg->header.stamp.toSec();
 	}
+
+	range_dt = ros::Time::now().toSec() - last_range_time;
+	if (range_dt > range_timeout)
+		return;
+	
+	imu_dt = ros::Time::now().toSec() - last_imu_time;
+	if (imu_dt > imu_timeout)
+	{
+		gyro_x = 0.0f;
+		gyro_y = 0.0f;
+	}
+
 
 	// TODO provide support for other encodings
 	std::string img_encoding = "mono8";
@@ -162,18 +180,16 @@ void FlowReader::imuCallback(const ros::MessageEvent<sensor_msgs::Imu const>& ev
 	gyro_x = gyros_in_cam.getX();
 	gyro_y = gyros_in_cam.getY();
 
-	//ROS_INFO("gyro xy %f %f", gyro_x, gyro_y);
-
 	att_q = msg->orientation;
+	last_imu_time = ros::Time::now().toSec();
 }
 
 void FlowReader::rangeCallback(const ros::MessageEvent<sensor_msgs::Range const>& event)
 {
 	sensor_msgs::Range::ConstPtr msg = event.getMessage();
 	altitude = msg->range;
-
+	last_range_time = ros::Time::now().toSec();
 	// We can use float d = agl() * cosf(euler.phi()) * cosf(euler.theta()); to correct if we choose to use sonar or baro
-	
 }
 
 bool FlowReader::registerCallbacks(const ros::NodeHandle& n)

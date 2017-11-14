@@ -8,6 +8,8 @@
     required="true"
     clear_params="true"
     output="screen">
+  <param name="Imu_Timeout" value="2.0" />
+  <param name="Range_Timeout" value="2.0" />
   <rosparam file="$(arg camera_calib_pkg)/mono/cam1_calibration.yaml"/>
   <rosparam file="$(arg camera_calib_pkg)/mono/webcam_config.yaml"/>
   <!--<remap from="~images" to="/camera/rgb/image_raw"/> -->
@@ -17,5 +19,3 @@
   <remap from="~range" to="/range"/>
   </node>
 </launch>
-
-
