@@ -28,6 +28,7 @@ ouput_rate(-1)
 
 	R_imu_in_body.setIdentity();
 	R_cam_in_imu.setIdentity();
+	camera_offset.setZero();
 
 	prev_img_time = ros::Time::now().toSec();
 	imu_timeout = 2.0;
@@ -62,19 +63,21 @@ bool FlowReader::initialize(const ros::NodeHandle& n)
 bool FlowReader::loadParameters(const ros::NodeHandle& n)
 {
 	std::vector<float> camera_calib_matrix = {0.0f}, imu_in_body = {0.0f}, cam_in_imu = {0.0f};
+	std::vector<float> cam_offset = {0.0f};
 
 	n.getParam("Output_Rate",ouput_rate);
-	n.getParam("Image_Width", image_width);
-	n.getParam("Image_Height", image_height);
+	n.getParam("image_width", image_width);
+	n.getParam("image_height", image_height);
 	n.getParam("Number_Of_Features", num_feat);
 
 	n.getParam("camera_matrix/data",camera_calib_matrix);	
 	n.getParam("cam_offset",cam_offset);
 	n.getParam("imu_in_body",imu_in_body);
-	n.getParam("cam_type",cam_type);
-	n.getParam("Imu_Timeout",imu_timeout);
-
 	n.getParam("cam_in_imu",cam_in_imu);
+	
+	n.getParam("Imu_Timeout",imu_timeout);
+	n.getParam("Range_Timeout",range_timeout);
+	
 	R_imu_in_body.setValue(imu_in_body[0], imu_in_body[1], imu_in_body[2], 
 							imu_in_body[3], imu_in_body[4], imu_in_body[5], 
 							imu_in_body[6], imu_in_body[7], imu_in_body[8]);
@@ -86,6 +89,10 @@ bool FlowReader::loadParameters(const ros::NodeHandle& n)
 
 	focal_length_x = camera_calib_matrix[0];
 	focal_length_y = camera_calib_matrix[4];
+
+	camera_offset.setX(cam_offset[0]);
+	camera_offset.setY(cam_offset[1]);
+	camera_offset.setZ(cam_offset[2]);
 
   	return true;
 }
@@ -159,7 +166,7 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 
 	// Perform rotations
 	tf::Vector3 pose(curr_odom_x, curr_odom_y, altitude);
-	tf::Vector3 pose_rot = R_imu_in_body*R_cam_in_imu*pose;
+	tf::Vector3 pose_rot = R_imu_in_body*R_cam_in_imu*pose + camera_offset;
 
 	cur_odom.pose.pose.position.x = pose_rot.getX();
 	cur_odom.pose.pose.position.y = pose_rot.getY();

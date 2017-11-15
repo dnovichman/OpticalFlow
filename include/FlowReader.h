@@ -51,9 +51,8 @@ private:
 	float gyro_x, gyro_y;
 	geometry_msgs::Quaternion att_q;
 
-	std::vector<float> cam_offset;
 	tf::Matrix3x3 R_imu_in_body, R_cam_in_imu;
-	std::string cam_type;
+	tf::Vector3 camera_offset;
 
 	double imu_dt, imu_timeout, last_imu_time, range_dt, range_timeout, last_range_time;
 };
