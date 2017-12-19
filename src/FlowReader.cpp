@@ -74,7 +74,7 @@ bool FlowReader::loadParameters(const ros::NodeHandle& n)
 	n.getParam("cam_offset",cam_offset);
 	n.getParam("imu_in_body",imu_in_body);
 	n.getParam("cam_in_imu",cam_in_imu);
-	
+
 	n.getParam("Imu_Timeout",imu_timeout);
 	n.getParam("Range_Timeout",range_timeout);
 	
@@ -118,7 +118,6 @@ void FlowReader::imagesCallback(const ros::MessageEvent<sensor_msgs::Image const
 		gyro_x = 0.0f;
 		gyro_y = 0.0f;
 	}
-
 
 	// TODO provide support for other encodings
 	std::string img_encoding = "mono8";
@@ -166,7 +165,7 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 
 	// Perform rotations
 	tf::Vector3 pose(curr_odom_x, curr_odom_y, altitude);
-	tf::Vector3 pose_rot = R_imu_in_body*R_cam_in_imu*pose + camera_offset;
+	tf::Vector3 pose_rot = R_imu_in_body*R_cam_in_imu*pose - camera_offset;
 
 	cur_odom.pose.pose.position.x = pose_rot.getX();
 	cur_odom.pose.pose.position.y = pose_rot.getY();
