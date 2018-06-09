@@ -170,6 +170,11 @@ void FlowReader::update_odom(std_msgs::Header h, float x, float y)
 	cur_odom.pose.pose.position.x = pose_rot.getX();
 	cur_odom.pose.pose.position.y = pose_rot.getY();
 	cur_odom.pose.pose.position.z = pose_rot.getZ();
+	
+	cur_odom.pose.pose.orientation.x = 0.0f;
+	cur_odom.pose.pose.orientation.y = 0.0f;
+	cur_odom.pose.pose.orientation.z = 0.0f;
+	cur_odom.pose.pose.orientation.w = 1.0f;
 
 	cur_odom.pose.pose.orientation = att_q;
 	odom_pub.publish(cur_odom);
